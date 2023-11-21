@@ -7,9 +7,19 @@ const public_users = express.Router();
 
 
 public_users.post("/register", (req,res) => {
-  //Write your code here
-  return res.status(300).json({message: "Yet to be implemented"});
+  const username = req.body.username;
+  const password = req.body.password;
+  if (username && password) {
+    if (!isValid(username)) {
+      users.push({"username":username,"password":password});
+      return res.status(200).json({message: "User successfully registred. Now you can login"});
+    } else {
+      return res.status(404).json({message: "User already exists!"});
+    }
+  }
+  return res.status(404).json({message: "Unable to register user."});
 });
+
 
 
 public_users.use(express.json()); // middleware to parse JSON requests
@@ -44,9 +54,6 @@ public_users.get('/author/:author', (req, res) => {
 
 
 
-
-
-
 // Get all books based on title
 public_users.get('/title/:title', (req, res) => {
   const bookTitle = req.params.title;
@@ -64,16 +71,101 @@ public_users.get('/title/:title', (req, res) => {
 
 //  Get book review
 public_users.get('/review/:isbn', (req, res) => {
-  const bookISBN = req.params.isbn;
+   const isbn = req.params.isbn;
+  res.send(books[isbn])
+  return res.status(300).json({message: "ISBN existing"});
+ });
 
-  // Find the book by the provided ISBN
-  const bookWithReviews = booksWithReviews.find(book => book.isbn === bookISBN);
 
-  if (bookWithReviews) {
-    res.json({ reviews: bookWithReviews.reviews });
-  } else {
-    res.status(404).json({ message: 'Book with the ISBN not found' });
+//  Get book review
+public_users.get('/auth/:isbn', (req, res) => {
+  const isbn = req.params.isbn;
+ res.send(books[isbn])
+ return res.status(300).json({message: "ISBN existing"});
+});
+
+//update details
+
+public_users.put("/review/isbn/:isbn", function (req, res) {
+  const isbn= req.params.isbn;
+  let book= books[isbn]
+  if (book) { //Check is friend exists
+      let review = req.body.review;
+      
+      if(review) {
+          books["review"] = review 
+      }
+      
+      books[isbn]=book;
+      res.send(`Updated Successfully.`);
+  }
+  else{
+      res.send("Unable to find the Item");
   }
 });
+
+// delete the details
+
+public_users.delete("/auth/review/:isbn", (req, res) => {
+  const isbn = req.params.isbn;
+  if (isbn){
+      delete books[isbn]
+  }
+  res.send(`Book setails with  ${isbn} deleted.`);
+});
+//===================================================================
+// Example external API URL
+const externalApiUrl = 'https://example.com/api/books';
+
+// Async function to fetch all books
+const getAllBooks = async () => {
+  try {
+    const response = await axios.get(externalApiUrl);
+    return response.data;
+  } catch (error) {
+    console.error(error);
+    throw new Error('Failed to fetch books');
+  }
+};
+
+
+
+//=======================================
+
+// Endpoint to get book details based on ISBN using Promise callbacks
+public_users.get('/books-promise/:isbn', (req, res) => {
+  const isbn = req.params.isbn;
+
+  getBookDetailsByISBNPromise(isbn)
+    .then(bookDetails => res.json({ bookDetails }))
+    .catch(error => res.status(404).json({ error: error.message }));
+});
+
+//============================================
+
+// Endpoint to get book details based on Author using async-await
+public_users.get('/books-by-author-async/:author', async (req, res) => {
+  const author = req.params.author;
+
+  try {
+    const bookDetails = await getBookDetailsByAuthorAsync(author);
+    res.json({ bookDetails });
+  } catch (error) {
+    res.status(404).json({ error: error.message });
+  }
+});
+
+//=======================================================
+// Function to fetch book details based on Title using async-await
+const getBookDetailsByTitleAsync = async (title) => {
+  try {
+    const response = await axios.get(`${externalApiUrl}?title=${title}`);
+    return response.data;
+  } catch (error) {
+    throw new Error('Failed to fetch book details');
+  }
+};
+
+
 
 module.exports.general = public_users;
